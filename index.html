@@ -1,210 +1,69 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Spotify Companion</title>
+  <meta charset="UTF-8">
+  <title>Login with Spotify</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    :root{--bg:#121212;--accent:#1DB954;--muted:#b3b3b3;}
-    html,body{height:100%;margin:0;font-family:Inter, Roboto, Arial, sans-serif;background:var(--bg);color:#fff}
-    .container{max-width:720px;margin:32px auto;padding:20px}
-    h1{margin:0 0 16px 0;font-size:20px}
-    .controls{display:flex;gap:12px;align-items:center;margin:12px 0}
-    button{background:var(--accent);border:none;color:#fff;padding:10px 14px;border-radius:8px;cursor:pointer}
-    .btn-ghost{background:transparent;border:1px solid rgba(255,255,255,0.08)}
-    #status{color:var(--muted);margin-bottom:8px}
-    #nowPlaying{margin-top:12px;font-weight:600}
-    #playlists{margin-top:18px}
-    .playlist{padding:10px;border-radius:8px;background:rgba(255,255,255,0.03);margin-bottom:8px;cursor:pointer}
-    .note{color:var(--muted);font-size:13px;margin-top:12px}
-    pre.small{white-space:pre-wrap;background:#0f0f0f;padding:8px;border-radius:6px;color:#9e9e9e}
+    body { 
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: sans-serif;
+      background: #191414;
+      color: #fff;
+    }
+    .login-btn {
+      background: #1DB954;
+      color: #fff;
+      padding: 1em 2em;
+      border: none;
+      border-radius: 30px;
+      font-size: 1.2em;
+      cursor: pointer;
+      transition: background 0.2s;
+      text-decoration: none;
+      display: inline-block;
+      margin-top: 20px;
+    }
+    .login-btn:hover {
+      background: #1ed760;
+    }
+    h1 { margin-bottom: 0.5em; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Spotify Companion</h1>
-    <div id="status">Status: not authenticated</div>
+  <h1>Spotify OAuth Demo</h1>
+  <a
+    class="login-btn"
+    href="https://accounts.spotify.com/authorize?client_id=947f00329a5048768210ef9fcf0f11b7&response_type=token&redirect_uri=https%3A%2F%2Feoegqe.github.io%2FE%2F&scope=user-read-private%20user-read-email"
+  >
+    Login with Spotify (Link)
+  </a>
 
-    <div class="controls">
-      <button id="loginBtn">Login with Spotify</button>
-      <button id="playPauseBtn" class="btn-ghost">Play / Pause</button>
-      <button id="nextBtn" class="btn-ghost">Next</button>
-      <button id="openSpotifyBtn" class="btn-ghost">Open Spotify</button>
-    </div>
+  <button class="login-btn" onclick="loginWithSpotify()">
+    Login with Spotify (Button)
+  </button>
 
-    <div id="nowPlaying">Now Playing: —</div>
-
-    <h3>Your Playlists</h3>
-    <div id="playlists">(none loaded)</div>
-
-    <div class="note">Replace <code>CLIENT_ID</code> below if you need to change it. Ensure the Redirect URI you register in Spotify Dashboard exactly matches the computed value shown in the debug box.</div>
-
-    <pre class="small" id="debug" style="display:none"></pre>
-  </div>
-
+  <p style="margin-top:2em;font-size:0.9em;opacity:0.8;">
+    Make sure you've set your redirect URI to <br>
+    <code>https://eoegqe.github.io/E/</code> in your Spotify Dashboard.
+  </p>
   <script>
-    /************************************************************************
-     * Spotify Companion — single-file production-ready starter
-     * - Uses Implicit Grant (front-end) to obtain access_token
-     * - Computes redirect URI dynamically (avoids mismatch issues)
-     * - Fetches playlists, shows now-playing, and issues play/pause/next
-     *
-     * Security note: do NOT include a client secret in front-end code.
-     * For production, prefer Authorization Code with PKCE and a backend.
-     ************************************************************************/
-
-    // CONFIG — set your Spotify Client ID (you already stored it in canvas)
-    const CLIENT_ID = '947f00329a5048768210ef9fcf0f11b7';
-
-    // compute exact redirect URI this page is served from (use this verbatim in Spotify Dashboard)
-    const REDIRECT_URI = window.location.origin + window.location.pathname;
-
-    // expose computed redirect URI for easy copy/paste into Spotify Dashboard
-    const debugEl = document.getElementById('debug');
-    debugEl.style.display = 'block';
-    debugEl.textContent = 'Computed redirect URI: ' + REDIRECT_URI;
-
-    const SCOPES = [
-      'user-read-playback-state',
-      'user-modify-playback-state',
-      'user-read-currently-playing',
-      'playlist-read-private'
-    ].join(' ');
-
-    // UI references
-    const statusEl = document.getElementById('status');
-    const loginBtn = document.getElementById('loginBtn');
-    const playPauseBtn = document.getElementById('playPauseBtn');
-    const nextBtn = document.getElementById('nextBtn');
-    const openBtn = document.getElementById('openSpotifyBtn');
-    const playlistsEl = document.getElementById('playlists');
-    const nowPlayingEl = document.getElementById('nowPlaying');
-
-    let accessToken = null;
-
-    // Build the authorization URL for Implicit Grant (front-end only)
-    function buildAuthUrl() {
-      const base = 'https://accounts.spotify.com/authorize';
-      const params = new URLSearchParams({
-        response_type: 'token',
-        client_id: CLIENT_ID,
-        scope: SCOPES,
-        redirect_uri: REDIRECT_URI
-      });
-      return base + '?' + params.toString();
+    function loginWithSpotify() {
+      const client_id = '947f00329a5048768210ef9fcf0f11b7';
+      const redirect_uri = 'https://eoegqe.github.io/E/';
+      const scopes = 'user-read-private user-read-email';
+      const auth_url = 
+        'https://accounts.spotify.com/authorize' +
+        '?client_id=' + encodeURIComponent(client_id) +
+        '&response_type=token' +
+        '&redirect_uri=' + encodeURIComponent(redirect_uri) +
+        '&scope=' + encodeURIComponent(scopes);
+      window.location.href = auth_url;
     }
-
-    loginBtn.addEventListener('click', () => {
-      if (!CLIENT_ID || CLIENT_ID === 'YOUR_CLIENT_ID') {
-        alert('Please set your CLIENT_ID in the code before authenticating.');
-        return;
-      }
-      // redirect to Spotify auth
-      window.location = buildAuthUrl();
-    });
-
-    playPauseBtn.addEventListener('click', () => {
-      if (!accessToken) return alert('Log in first');
-
-      // Query current playback state, then toggle play/pause
-      fetch('https://api.spotify.com/v1/me/player', { method: 'GET', headers: { Authorization: 'Bearer ' + accessToken } })
-        .then(r => {
-          if (r.status === 204) return { is_playing: false };
-          return r.json();
-        }).then(data => {
-          const isPlaying = data && data.is_playing;
-          // Spotify uses PUT to play and PUT to pause (pause endpoint also uses PUT in this pattern)
-          const endpoint = isPlaying ? 'pause' : 'play';
-          // Use the appropriate method: pause is PUT to /player/pause, play is PUT to /player/play
-          fetch(`https://api.spotify.com/v1/me/player/${endpoint}`, {
-            method: 'PUT',
-            headers: { Authorization: 'Bearer ' + accessToken }
-          }).catch(e => console.warn(e));
-        }).catch(e => console.warn(e));
-    });
-
-    nextBtn.addEventListener('click', () => {
-      if (!accessToken) return alert('Log in first');
-      fetch('https://api.spotify.com/v1/me/player/next', { method: 'POST', headers: { Authorization: 'Bearer ' + accessToken } })
-        .catch(e => console.warn(e));
-    });
-
-    openBtn.addEventListener('click', () => {
-      window.open('https://open.spotify.com', '_blank');
-    });
-
-    // Handle token in URL hash after redirect
-    function parseHashToken() {
-      const hash = window.location.hash.substring(1);
-      if (!hash) return null;
-      const params = new URLSearchParams(hash);
-      return params.get('access_token');
-    }
-
-    function setStatus(text) { statusEl.textContent = 'Status: ' + text; }
-
-    function fetchPlaylists() {
-      fetch('https://api.spotify.com/v1/me/playlists?limit=50', { headers: { Authorization: 'Bearer ' + accessToken } })
-        .then(r => r.json())
-        .then(data => {
-          playlistsEl.innerHTML = '';
-          if (!data.items || data.items.length === 0) {
-            playlistsEl.textContent = '(no playlists)';
-            return;
-          }
-          data.items.forEach(pl => {
-            const d = document.createElement('div');
-            d.className = 'playlist';
-            d.textContent = pl.name + ' — ' + (pl.owner && pl.owner.display_name ? pl.owner.display_name : '');
-            d.onclick = () => playContext(pl.uri);
-            playlistsEl.appendChild(d);
-          });
-        }).catch(e => {
-          console.warn(e);
-          playlistsEl.textContent = '(failed to load playlists)';
-        });
-    }
-
-    function playContext(uri) {
-      fetch('https://api.spotify.com/v1/me/player/play', {
-        method: 'PUT',
-        headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ context_uri: uri })
-      }).catch(e => console.warn(e));
-    }
-
-    function fetchCurrentlyPlaying() {
-      if (!accessToken) return;
-      fetch('https://api.spotify.com/v1/me/player/currently-playing', { headers: { Authorization: 'Bearer ' + accessToken } })
-        .then(r => {
-          if (r.status === 204) { nowPlayingEl.textContent = 'Now Playing: —'; return null; }
-          return r.json();
-        })
-        .then(data => {
-          if (data && data.item) {
-            const artists = data.item.artists.map(a => a.name).join(', ');
-            nowPlayingEl.textContent = `Now Playing: ${data.item.name} — ${artists}`;
-          }
-        }).catch(e => console.warn(e));
-    }
-
-    // On load: parse token and initialize
-    (function init() {
-      const token = parseHashToken();
-      if (token) {
-        accessToken = token;
-        // Clear the hash for cleanliness
-        history.replaceState(null, '', window.location.pathname + window.location.search);
-        setStatus('Authenticated');
-        fetchPlaylists();
-        fetchCurrentlyPlaying();
-        // Poll for current track
-        setInterval(fetchCurrentlyPlaying, 5000);
-      } else {
-        setStatus('Not authenticated');
-      }
-    })();
   </script>
 </body>
 </html>
-```0
