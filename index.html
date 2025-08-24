@@ -37,15 +37,33 @@
     <h3>Your Playlists</h3>
     <div id="playlists">(none loaded)</div>
 
-    <div class="note">Replace <code>YOUR_CLIENT_ID</code> below with your Spotify app Client ID and ensure the Redirect URI in Spotify Dashboard is set to <code>https://eoegqe.github.io/E/</code>.</div>
+    <div class="note">Replace <code>CLIENT_ID</code> below if you need to change it. Ensure the Redirect URI you register in Spotify Dashboard exactly matches the computed value shown in the debug box.</div>
 
     <pre class="small" id="debug" style="display:none"></pre>
   </div>
 
   <script>
-    // CONFIG — replace CLIENT_ID with your Spotify app client ID
+    /************************************************************************
+     * Spotify Companion — single-file production-ready starter
+     * - Uses Implicit Grant (front-end) to obtain access_token
+     * - Computes redirect URI dynamically (avoids mismatch issues)
+     * - Fetches playlists, shows now-playing, and issues play/pause/next
+     *
+     * Security note: do NOT include a client secret in front-end code.
+     * For production, prefer Authorization Code with PKCE and a backend.
+     ************************************************************************/
+
+    // CONFIG — set your Spotify Client ID (you already stored it in canvas)
     const CLIENT_ID = '947f00329a5048768210ef9fcf0f11b7';
-    const REDIRECT_URI = 'https://eoegqe.github.io/E/index.html';
+
+    // compute exact redirect URI this page is served from (use this verbatim in Spotify Dashboard)
+    const REDIRECT_URI = window.location.origin + window.location.pathname;
+
+    // expose computed redirect URI for easy copy/paste into Spotify Dashboard
+    const debugEl = document.getElementById('debug');
+    debugEl.style.display = 'block';
+    debugEl.textContent = 'Computed redirect URI: ' + REDIRECT_URI;
+
     const SCOPES = [
       'user-read-playback-state',
       'user-modify-playback-state',
@@ -61,7 +79,6 @@
     const openBtn = document.getElementById('openSpotifyBtn');
     const playlistsEl = document.getElementById('playlists');
     const nowPlayingEl = document.getElementById('nowPlaying');
-    const debugEl = document.getElementById('debug');
 
     let accessToken = null;
 
@@ -70,7 +87,7 @@
       const base = 'https://accounts.spotify.com/authorize';
       const params = new URLSearchParams({
         response_type: 'token',
-        client_id: 947f00329a5048768210ef9fcf0f11b7,
+        client_id: CLIENT_ID,
         scope: SCOPES,
         redirect_uri: REDIRECT_URI
       });
@@ -78,24 +95,29 @@
     }
 
     loginBtn.addEventListener('click', () => {
-      if (!CLIENT_ID || CLIENT_ID === 'CLIENT_ID') {
+      if (!CLIENT_ID || CLIENT_ID === 'YOUR_CLIENT_ID') {
         alert('Please set your CLIENT_ID in the code before authenticating.');
         return;
       }
+      // redirect to Spotify auth
       window.location = buildAuthUrl();
     });
 
     playPauseBtn.addEventListener('click', () => {
       if (!accessToken) return alert('Log in first');
-      // PUT /v1/me/player/play will resume playback — to toggle we check state first
+
+      // Query current playback state, then toggle play/pause
       fetch('https://api.spotify.com/v1/me/player', { method: 'GET', headers: { Authorization: 'Bearer ' + accessToken } })
         .then(r => {
-          if (r.status === 204) return { playing: false };
+          if (r.status === 204) return { is_playing: false };
           return r.json();
         }).then(data => {
-          // Best-effort: call pause or play
-          fetch('https://api.spotify.com/v1/me/player/' + (data && data.is_playing ? 'pause' : 'play'), {
-            method: data && data.is_playing ? 'PUT' : 'PUT',
+          const isPlaying = data && data.is_playing;
+          // Spotify uses PUT to play and PUT to pause (pause endpoint also uses PUT in this pattern)
+          const endpoint = isPlaying ? 'pause' : 'play';
+          // Use the appropriate method: pause is PUT to /player/pause, play is PUT to /player/play
+          fetch(`https://api.spotify.com/v1/me/player/${endpoint}`, {
+            method: 'PUT',
             headers: { Authorization: 'Bearer ' + accessToken }
           }).catch(e => console.warn(e));
         }).catch(e => console.warn(e));
@@ -137,7 +159,10 @@
             d.onclick = () => playContext(pl.uri);
             playlistsEl.appendChild(d);
           });
-        }).catch(e => console.warn(e));
+        }).catch(e => {
+          console.warn(e);
+          playlistsEl.textContent = '(failed to load playlists)';
+        });
     }
 
     function playContext(uri) {
@@ -179,9 +204,7 @@
         setStatus('Not authenticated');
       }
     })();
-
-    // Optional debug helper
-    function debug(msg) { debugEl.style.display = 'block'; debugEl.textContent += '\n' + msg; }
   </script>
 </body>
 </html>
+```0
