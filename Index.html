@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Spotify Companion</title>
+<style>
+  body { font-family: Arial, sans-serif; padding: 20px; background: #121212; color: #fff; }
+  button { margin: 5px; padding: 10px 15px; background: #1DB954; border: none; color: #fff; cursor: pointer; }
+  #playlists { margin-top: 20px; }
+  .playlist { margin: 5px 0; cursor: pointer; }
+</style>
+</head>
+<body>
+<h1>Spotify Companion</h1>
+<div id="status">Not authenticated</div>
+<button id="loginBtn">Login with Spotify</button>
+<button id="playPauseBtn">Play/Pause</button>
+<button id="nextBtn">Next</button>
+<button id="openSpotifyBtn">Open Spotify</button>
+
+<div id="nowPlaying">Now Playing: —</div>
+<h3>Your Playlists</h3>
+<div id="playlists"></div>
+
+<script>
+const clientId = "YOUR_CLIENT_ID"; // <-- Replace with your Spotify Client ID
+const redirectUri = "https://YOUR_DOMAIN_OR_NETLIFY_URL/spotify_companion.html"; // <-- Must match Spotify app
+
+let accessToken = null;
+
+// Login button
+document.getElementById("loginBtn").onclick = () => {
+    const scopes = "user-read-playback-state user-modify-playback-state playlist-read-private";
+    const url = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}`;
+    window.location = url;
+};
+
+// Extract token from URL
+if (window.location.hash) {
+    const hash = window.location.hash.substring(1);
+    const params = new URLSearchParams(hash);
+    accessToken = params.get("access_token");
+    if (accessToken) {
+        document.getElementById("status").innerText = "Authenticated";
+        fetchPlaylists();
+        fetchCurrentlyPlaying();
+    }
+}
+
+// Open Spotify button
+document.getElementById("openSpotifyBtn").onclick = () => {
+    window.open("https://open.spotify.com", "_blank");
+};
+
+// Play/Pause button
+document.getElementById("playPauseBtn").onclick = () => {
+    if (!accessToken) return alert("Log in first");
+    fetch("https://api.spotify.com/v1/me/player/play", {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${accessToken}` }
+    }).catch(console.error);
+};
+
+// Next track button
+document.getElementById("nextBtn").onclick = () => {
+    if (!accessToken) return alert("Log in first");
+    fetch("https://api.spotify.com/v1/me/player/next", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}` }
+    }).catch(console.error);
+};
+
+// Fetch playlists
+function fetchPlaylists() {
+    fetch("https://api.spotify.com/v1/me/playlists", {
+        headers: { Authorization: `Bearer ${accessToken}` }
+    })
+    .then(r => r.json())
+    .then(data => {
+        const container = document.getElementById("playlists");
+        container.innerHTML = "";
+        data.items.forEach(pl => {
+            const div = document.createElement("div");
+            div.className = "playlist";
+            div.textContent = pl.name;
+            div.onclick = () => playPlaylist(pl.uri);
+            container.appendChild(div);
+        });
+    });
+}
+
+// Play playlist
+function playPlaylist(uri) {
+    fetch("https://api.spotify.com/v1/me/player/play", {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({ context_uri: uri })
+    }).catch(console.error);
+}
+
+// Fetch currently playing
+function fetchCurrentlyPlaying() {
+    if (!accessToken) return;
+    fetch("https://api.spotify.com/v1/me/player/currently-playing", {
+        headers: { Authorization: `Bearer ${accessToken}` }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data && data.item) {
+            document.getElementById("nowPlaying").innerText =
+                "Now Playing: " + data.item.name + " — " + data.item.artists.map(a => a.name).join(", ");
+        }
+    });
+}
+
+// Poll every 5 seconds
+setInterval(fetchCurrentlyPlaying, 5000);
+</script>
+</body>
+</html>
